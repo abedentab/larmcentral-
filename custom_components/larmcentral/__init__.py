@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, State, callback
+from homeassistant.core import Event, HomeAssistant, ServiceCall, State, callback
+from homeassistant.components.http import StaticPathConfig
+from homeassistant.components import frontend
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
 from .alarm import AlarmDefinition, AlarmRuntime
@@ -23,6 +25,7 @@ HISTORY_KEY = "_history"
 WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
 HISTORY_ENTITY = "input_button.larmhistorik"
+FACTORY_URL = "/larmcentral/larmcentral-factory-card.js"
 
 
 def _remove_alarm(text: str, name: str) -> str:
@@ -120,6 +123,33 @@ async def _sync_dashboard(
             },
             blocking=False,
         )
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register the alarm factory card and its create service once."""
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(FACTORY_URL, __file__.replace("__init__.py", "larmcentral-factory-card.js"), False)]
+    )
+    frontend.async_register_extra_module_url(hass, FACTORY_URL)
+
+    async def add_alarm(call: ServiceCall) -> None:
+        data = {
+            CONF_NAME: call.data[CONF_NAME],
+            CONF_ENTITY: call.data[CONF_ENTITY],
+            CONF_TRIGGER_STATE: call.data.get(CONF_TRIGGER_STATE, DEFAULT_TRIGGER_STATE),
+            CONF_START_LEVEL: call.data.get(CONF_START_LEVEL, DEFAULT_START_LEVEL),
+            CONF_RED_DELAY: int(call.data.get(CONF_RED_DELAY, DEFAULT_RED_DELAY)),
+            CONF_ENABLED: call.data.get(CONF_ENABLED, DEFAULT_ENABLED),
+            CONF_NOTIFY_RED: call.data.get(CONF_NOTIFY_RED, DEFAULT_NOTIFY_RED),
+        }
+        await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": "user"},
+            data=data,
+        )
+
+    hass.services.async_register(DOMAIN, "add_alarm", add_alarm)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
