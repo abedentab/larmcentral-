@@ -17,7 +17,7 @@ from .const import (
 from .history import AlarmHistory, HistoryItem
 
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "switch", "number", "select"]
 HISTORY_KEY = "_history"
 
 WARNING_HELPER = "input_text.larm_varningar"
@@ -244,6 +244,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "runtime": runtime,
         "remove_listener": remove_listener,
         "cancel_red_timer": lambda: cancel_red_timer() if cancel_red_timer else None,
+        "refresh": lambda: publish(hass.states.get(definition.entity)),
     }
 
     publish(hass.states.get(definition.entity))
