@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lägg till larm",
+        "description": "Skapa ett larmkort för Larmcentralen.",
+        "data": {
+          "name": "Namn",
+          "entity": "Home Assistant-entitet",
+          "trigger_state": "Larm när tillståndet är",
+          "start_level": "Startnivå",
+          "red_delay": "Minuter från gul till röd",
+          "enabled": "Aktiv",
+          "notify_red": "Mobilavisering vid rött"
+        }
+      }
+    }
+  }
+}
