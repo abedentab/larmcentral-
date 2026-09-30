@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 @dataclass(slots=True)
@@ -24,7 +24,6 @@ class AlarmRuntime:
     level: str | None = None
 
     def update(self, state: str, now: datetime) -> str | None:
-        """Return current alarm level: yellow, red or None."""
         definition = self.definition
 
         if not definition.enabled or state != definition.trigger_state:
@@ -34,15 +33,8 @@ class AlarmRuntime:
 
         if self.active_since is None:
             self.active_since = now
-            self.level = definition.start_level
 
         if definition.start_level == "red":
-            self.level = "red"
-            return self.level
-
-        if definition.red_delay > 0 and now >= (
-            self.active_since + timedelta(minutes=definition.red_delay)
-        ):
             self.level = "red"
         else:
             self.level = "yellow"
