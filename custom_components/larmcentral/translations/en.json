@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add alarm",
+        "description": "Create an alarm for Larmcentral.",
+        "data": {
+          "name": "Name",
+          "entity": "Home Assistant entity",
+          "trigger_state": "Alarm when state is",
+          "start_level": "Start level",
+          "red_delay": "Minutes from yellow to red",
+          "enabled": "Enabled",
+          "notify_red": "Mobile notification on red"
+        }
+      }
+    }
+  }
+}
