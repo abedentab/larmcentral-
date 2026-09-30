@@ -20,6 +20,107 @@ EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor"]
 HISTORY_KEY = "_history"
 
+WARNING_HELPER = "input_text.larm_varningar"
+CRITICAL_HELPER = "input_text.larm_kritiska"
+HISTORY_ENTITY = "input_button.larmhistorik"
+
+
+def _remove_alarm(text: str, name: str) -> str:
+    if text in ("unknown", "unavailable"):
+        return ""
+    return "\\n".join(
+        line for line in text.split("\\n") if name not in line
+    )
+
+
+def _add_alarm(text: str, line: str, name: str) -> str:
+    cleaned = _remove_alarm(text, name)
+    return f"{cleaned}\\n{line}" if cleaned else line
+
+
+async def _set_helper(hass: HomeAssistant, entity_id: str, value: str) -> None:
+    if hass.states.get(entity_id) is None:
+        return
+    await hass.services.async_call(
+        "input_text",
+        "set_value",
+        {"entity_id": entity_id, "value": value},
+        blocking=True,
+    )
+
+
+async def _sync_dashboard(
+    hass: HomeAssistant,
+    definition: AlarmDefinition,
+    level: str,
+) -> None:
+    """Mirror an alarm directly into the existing Larmcentral dashboard helpers."""
+    name = definition.name
+    warning_state = hass.states.get(WARNING_HELPER)
+    critical_state = hass.states.get(CRITICAL_HELPER)
+
+    warning_text = warning_state.state if warning_state else ""
+    critical_text = critical_state.state if critical_state else ""
+
+    if level == "yellow":
+        await _set_helper(
+            hass,
+            CRITICAL_HELPER,
+            _remove_alarm(critical_text, name),
+        )
+        await _set_helper(
+            hass,
+            WARNING_HELPER,
+            _add_alarm(
+                warning_text,
+                f"{datetime.now().astimezone().strftime('%H:%M')} 🟨 {name}",
+                name,
+            ),
+        )
+        history_message = f"🟨 {name}"
+
+    elif level == "red":
+        await _set_helper(
+            hass,
+            WARNING_HELPER,
+            _remove_alarm(warning_text, name),
+        )
+        await _set_helper(
+            hass,
+            CRITICAL_HELPER,
+            _add_alarm(
+                critical_text,
+                f"{datetime.now().astimezone().strftime('%H:%M')} 🟥 {name}",
+                name,
+            ),
+        )
+        history_message = f"🟥 {name}"
+
+    else:
+        await _set_helper(
+            hass,
+            WARNING_HELPER,
+            _remove_alarm(warning_text, name),
+        )
+        await _set_helper(
+            hass,
+            CRITICAL_HELPER,
+            _remove_alarm(critical_text, name),
+        )
+        history_message = f"🟩 {name} återställt"
+
+    if hass.states.get(HISTORY_ENTITY) is not None:
+        await hass.services.async_call(
+            "logbook",
+            "log",
+            {
+                "name": "Larmhistorik",
+                "message": history_message,
+                "entity_id": HISTORY_ENTITY,
+            },
+            blocking=False,
+        )
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = entry.data
@@ -62,6 +163,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "notify_red": definition.notify_red,
                 "timestamp": now.isoformat(),
             },
+        )
+
+        hass.async_create_task(
+            _sync_dashboard(hass, definition, normalized_level)
         )
 
         if normalized_level == "red" and definition.notify_red:
