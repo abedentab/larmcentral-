@@ -6,10 +6,7 @@ from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, State, callback
-from homeassistant.helpers.event import (
-    async_call_later,
-    async_track_state_change_event,
-)
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
 from .alarm import AlarmDefinition, AlarmRuntime
 from .const import (
@@ -17,9 +14,11 @@ from .const import (
     CONF_START_LEVEL, CONF_TRIGGER_STATE, DEFAULT_ENABLED, DEFAULT_NOTIFY_RED,
     DEFAULT_RED_DELAY, DEFAULT_START_LEVEL, DEFAULT_TRIGGER_STATE, DOMAIN,
 )
+from .history import AlarmHistory, HistoryItem
 
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor"]
+HISTORY_KEY = "_history"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -35,22 +34,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     runtime = AlarmRuntime(definition=definition)
     hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN].setdefault(HISTORY_KEY, AlarmHistory())
     cancel_red_timer = None
 
     @callback
     def fire_change(previous_level: str | None, level: str | None) -> None:
+        now = datetime.now().astimezone()
+        normalized_level = level or "clear"
+
+        hass.data[DOMAIN][HISTORY_KEY].add(
+            HistoryItem(
+                timestamp=now,
+                entity_id=definition.entity,
+                name=definition.name,
+                level=normalized_level,
+            )
+        )
+
         hass.bus.async_fire(
             EVENT_ALARM_CHANGED,
             {
                 "entry_id": entry.entry_id,
                 "entity_id": definition.entity,
                 "name": definition.name,
-                "level": level or "clear",
+                "level": normalized_level,
                 "previous_level": previous_level or "clear",
                 "notify_red": definition.notify_red,
-                "timestamp": datetime.now().astimezone().isoformat(),
+                "timestamp": now.isoformat(),
             },
         )
+
+        if normalized_level == "red" and definition.notify_red:
+            hass.async_create_task(
+                hass.services.async_call(
+                    "notify",
+                    "mobile_app_sm_a566b",
+                    {
+                        "title": "🟥 Larmcentral",
+                        "message": f"{definition.name} är rött larm.",
+                    },
+                    blocking=False,
+                )
+            )
 
     @callback
     def schedule_red_timer() -> None:
