@@ -1,0 +1,48 @@
+add_alarm:
+  name: Lägg till larm
+  description: Skapar ett nytt larm i Larmcentral.
+  fields:
+    name:
+      name: Namn
+      required: true
+      selector:
+        text:
+    entity:
+      name: Larmkälla
+      required: true
+      selector:
+        entity:
+    trigger_state:
+      name: Larm när tillståndet är
+      default: "on"
+      selector:
+        text:
+    start_level:
+      name: Startnivå
+      default: yellow
+      selector:
+        select:
+          options:
+            - label: Gul
+              value: yellow
+            - label: Röd
+              value: red
+    red_delay:
+      name: Rött efter
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 1
+          unit_of_measurement: min
+    enabled:
+      name: Övervakning aktiv
+      default: true
+      selector:
+        boolean:
+    notify_red:
+      name: Mobilavisering vid rött
+      default: true
+      selector:
+        boolean:
