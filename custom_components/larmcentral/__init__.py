@@ -24,7 +24,7 @@ EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor", "switch", "number", "select", "text"]
 HISTORY_KEY = "_history"
 ADD_CARD_PATH = "/larmcentral/larmcentral-add-card.js"
-ADD_CARD_URL = f"{ADD_CARD_PATH}?v=0.8.8"
+ADD_CARD_URL = f"{ADD_CARD_PATH}?v=0.8.9"
 
 WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
