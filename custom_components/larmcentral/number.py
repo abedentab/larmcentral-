@@ -5,7 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_RED_DELAY, DOMAIN
+from .const import CONF_OBJECT, CONF_RED_DELAY, DOMAIN
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -27,8 +27,8 @@ class LarmRedDelayNumber(NumberEntity):
         self.entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{CONF_RED_DELAY}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data["name"],
+            "identifiers": {(DOMAIN, "object", str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip().casefold())},
+            "name": str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip(),
         }
 
     @property
