@@ -103,6 +103,33 @@ def _schema() -> vol.Schema:
 class LarmcentralConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 2
 
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return None
+
+    async def async_migrate_entry(self, hass, config_entry):
+        """Migrate older Larmcentral entries to version 2."""
+        if config_entry.version > self.VERSION:
+            return False
+
+        if config_entry.version == 1:
+            data = dict(config_entry.data)
+
+            # Older alarms did not have object/alarm-type metadata.
+            # Preserve their working runtime settings and add safe defaults.
+            old_name = str(data.get(CONF_NAME, config_entry.title or "")).strip()
+            data.setdefault(CONF_OBJECT, old_name or "Larm")
+            data.setdefault(CONF_ALARM_TYPE, ALARM_TYPE_CUSTOM)
+            data.setdefault(CONF_CUSTOM_ALARM_TYPE, old_name or "Larm")
+
+            hass.config_entries.async_update_entry(
+                config_entry,
+                data=data,
+                version=2,
+            )
+
+        return True
+
     async def async_step_user(self, user_input=None):
         errors = {}
 
