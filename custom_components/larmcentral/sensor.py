@@ -59,9 +59,10 @@ class LarmcentralAlarmSensor(_EventSensor):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, entry)
         self._attr_unique_id = f"{entry.entry_id}_alarm"
+        object_name = str(entry.data.get(CONF_OBJECT, entry.data[CONF_NAME])).strip()
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data[CONF_NAME],
+            "identifiers": {(DOMAIN, "object", object_name.casefold())},
+            "name": object_name,
         }
 
     @property
