@@ -91,7 +91,7 @@ class LarmcentralHistorySensor(_EventSensor):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, entry)
-        self._attr_unique_id = "larmcentral_history"
+        self._attr_unique_id = f"{entry.entry_id}_history"
 
     @property
     def native_value(self) -> int:
