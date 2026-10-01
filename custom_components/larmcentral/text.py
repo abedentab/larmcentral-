@@ -49,8 +49,8 @@ class _ConfigText(TextEntity):
         self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data["name"],
+            "identifiers": {(DOMAIN, "object", str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip().casefold())},
+            "name": str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip(),
         }
 
     @property
