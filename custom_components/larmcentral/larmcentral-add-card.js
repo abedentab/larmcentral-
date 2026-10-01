@@ -48,45 +48,11 @@ class LarmcentralAddCard extends HTMLElement {
     this.querySelector("#add").addEventListener("click", () => this._openFlow());
   }
 
-  async _openFlow() {
-    if (!this._hass) return;
-
-    try {
-      const flow = await this._hass.callWS({
-        type: "config_entries/flow/init",
-        handler: "larmcentral",
-        show_advanced_options: false,
-      });
-
-      // Home Assistant's dialog component is normally already loaded after
-      // config/integrations has been used. If it is not, use HA's normal
-      // integrations page once to load it, without creating a second flow.
-      if (!customElements.get("dialog-data-entry-flow")) {
-        history.pushState(
-          null,
-          "",
-          "/config/integrations/dashboard"
-        );
-        window.dispatchEvent(new Event("location-changed"));
-        return;
-      }
-
-      this.dispatchEvent(
-        new CustomEvent("show-dialog", {
-          bubbles: true,
-          composed: true,
-          detail: {
-            dialogTag: "dialog-data-entry-flow",
-            dialogImport: async () => {},
-            dialogParams: {
-              continueFlowId: flow.flow_id,
-            },
-          },
-        })
-      );
-    } catch (err) {
-      console.error("Larmcentral: kunde inte öppna nytt larm", err);
-    }
+  _openFlow() {
+    // Use Home Assistant's supported integration-add route. The integrations
+    // dashboard reads the domain parameter and opens Larmcentral's config flow.
+    history.pushState(null, "", "/config/integrations/add?domain=larmcentral");
+    window.dispatchEvent(new Event("location-changed"));
   }
 }
 
