@@ -5,15 +5,20 @@
         "title": "Add alarm",
         "description": "Create an alarm for Larmcentral.",
         "data": {
-          "name": "Name",
-          "entity": "Home Assistant entity",
+          "object": "Object",
+          "alarm_type": "Alarm type",
+          "custom_alarm_type": "Custom alarm type (only when Custom is selected)",
+          "entity": "Alarm source",
           "trigger_state": "Alarm when state is",
           "start_level": "Start level",
           "red_delay": "Minutes from yellow to red",
-          "enabled": "Enabled",
+          "enabled": "Monitoring enabled",
           "notify_red": "Mobile notification on red"
         }
       }
+    },
+    "error": {
+      "custom_alarm_type_required": "Enter a custom alarm type when Alarm type is Custom."
     }
   }
 }
