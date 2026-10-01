@@ -18,7 +18,7 @@ class LarmcentralAddCard extends HTMLElement {
       <ha-card>
         <button id="add" type="button">
           <ha-icon icon="mdi:plus-circle"></ha-icon>
-          <span>Skapa nytt larm</span>
+          <span>Skapa nytt larm · 0.8.8</span>
         </button>
       </ha-card>
       <style>
