@@ -1,7 +1,7 @@
 {
   "domain": "larmcentral",
   "name": "Larmcentral",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "documentation": "https://github.com/abedentab/larmcentral-",
   "config_flow": true,
   "requirements": [],
