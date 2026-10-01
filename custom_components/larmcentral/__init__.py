@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
@@ -19,6 +21,7 @@ from .history import AlarmHistory, HistoryItem
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor", "switch", "number", "select", "text"]
 HISTORY_KEY = "_history"
+ADD_CARD_URL = "/larmcentral/larmcentral-add-card.js"
 
 WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
@@ -122,7 +125,17 @@ async def _sync_dashboard(
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up Larmcentral."""
+    """Set up Larmcentral frontend helper."""
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                ADD_CARD_URL,
+                __file__.replace("__init__.py", "larmcentral-add-card.js"),
+                False,
+            )
+        ]
+    )
+    add_extra_js_url(hass, ADD_CARD_URL)
     return True
 
 
