@@ -6,10 +6,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_ALARM_TYPE,
     CONF_CUSTOM_ALARM_TYPE,
+    CONF_NAME,
     CONF_OBJECT,
     CONF_TRIGGER_STATE,
     DOMAIN,
+    ALARM_TYPE_CUSTOM,
 )
 
 
@@ -64,6 +67,38 @@ class _ConfigText(TextEntity):
 class LarmObjectText(_ConfigText):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, entry, CONF_OBJECT, "Objekt", "mdi:cube-outline")
+
+    async def async_set_value(self, value: str) -> None:
+        """Rename the object while preserving the alarm beneath it."""
+        object_name = value.strip()
+        if not object_name:
+            return
+
+        data = dict(self.entry.data)
+        alarm_type = data.get(CONF_ALARM_TYPE, ALARM_TYPE_CUSTOM)
+        custom_type = str(data.get(CONF_CUSTOM_ALARM_TYPE, "")).strip()
+        labels = {
+            "motion": "Rörelse",
+            "ping": "Ping",
+            "switch_alarm": "Brytarlarm",
+            "ir": "IR",
+            "level": "Nivå",
+            "leak": "Läckage",
+            "temperature": "Temperatur",
+        }
+        alarm_label = custom_type if alarm_type == ALARM_TYPE_CUSTOM else labels.get(alarm_type, alarm_type)
+
+        data[CONF_OBJECT] = object_name
+        data[CONF_NAME] = f"{object_name} – {alarm_label}"
+        self.hass.config_entries.async_update_entry(
+            self.entry,
+            data=data,
+            title=data[CONF_NAME],
+        )
+
+        runtime = self.hass.data[DOMAIN][self.entry.entry_id]["runtime"]
+        runtime.definition.name = data[CONF_NAME]
+        self.async_write_ha_state()
 
 
 class LarmTriggerStateText(_ConfigText):
