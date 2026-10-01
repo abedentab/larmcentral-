@@ -19,7 +19,7 @@ from .const import (
 from .history import AlarmHistory, HistoryItem
 
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
-PLATFORMS = ["sensor", "switch", "number", "select"]
+PLATFORMS = ["sensor", "switch", "number", "select", "text"]
 HISTORY_KEY = "_history"
 
 WARNING_HELPER = "input_text.larm_varningar"
