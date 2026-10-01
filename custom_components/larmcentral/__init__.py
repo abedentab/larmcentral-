@@ -5,8 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components import lovelace
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
@@ -21,7 +23,8 @@ from .history import AlarmHistory, HistoryItem
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor", "switch", "number", "select", "text"]
 HISTORY_KEY = "_history"
-ADD_CARD_URL = "/larmcentral/larmcentral-add-card.js"
+ADD_CARD_PATH = "/larmcentral/larmcentral-add-card.js"
+ADD_CARD_URL = f"{ADD_CARD_PATH}?v=0.8.8"
 
 WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
@@ -124,18 +127,51 @@ async def _sync_dashboard(
         )
 
 
+async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
+    """Register the Larmcentral card as a Lovelace module resource."""
+    lovelace_data = hass.data.get(lovelace.LOVELACE_DATA)
+    if lovelace_data is None:
+        return
+
+    resources = lovelace_data.resources
+    if not isinstance(resources, ResourceStorageCollection):
+        return
+
+    # Ensure existing resources are loaded before inspecting or changing them.
+    await resources.async_get_info()
+
+    namespace = f"{ADD_CARD_PATH}?"
+    for item in resources.async_items():
+        url = str(item.get("url", ""))
+        if url == ADD_CARD_PATH or url.startswith(namespace):
+            if url != ADD_CARD_URL:
+                await resources.async_update_item(
+                    item["id"],
+                    {"res_type": "module", "url": ADD_CARD_URL},
+                )
+            return
+
+    await resources.async_create_item(
+        {"res_type": "module", "url": ADD_CARD_URL}
+    )
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up Larmcentral frontend helper."""
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
-                ADD_CARD_URL,
+                ADD_CARD_PATH,
                 __file__.replace("__init__.py", "larmcentral-add-card.js"),
                 False,
             )
         ]
     )
+
+    # Keep the global frontend registration as a fallback, and also register
+    # the card as a Lovelace resource so dashboards load it deterministically.
     add_extra_js_url(hass, ADD_CARD_URL)
+    await _ensure_lovelace_resource(hass)
     return True
 
 
