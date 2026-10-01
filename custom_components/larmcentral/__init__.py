@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, ServiceCall, State, callback
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.components import frontend
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
 from .alarm import AlarmDefinition, AlarmRuntime
@@ -130,7 +129,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(FACTORY_URL, __file__.replace("__init__.py", "larmcentral-factory-card.js"), False)]
     )
-    frontend.async_register_extra_module_url(hass, FACTORY_URL)
 
     async def add_alarm(call: ServiceCall) -> None:
         data = {
