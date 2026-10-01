@@ -1,10 +1,13 @@
 {
   "domain": "larmcentral",
   "name": "Larmcentral",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "documentation": "https://github.com/abedentab/larmcentral-",
   "config_flow": true,
   "requirements": [],
-  "dependencies": [],
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
   "codeowners": []
 }
