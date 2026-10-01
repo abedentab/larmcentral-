@@ -5,7 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_ENABLED, CONF_NOTIFY_RED, DOMAIN
+from .const import CONF_ENABLED, CONF_NOTIFY_RED, CONF_OBJECT, DOMAIN
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -26,8 +26,8 @@ class _ConfigSwitch(SwitchEntity):
         self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data["name"],
+            "identifiers": {(DOMAIN, "object", str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip().casefold())},
+            "name": str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip(),
         }
 
     @property
