@@ -5,7 +5,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_NAME, DOMAIN
+from .const import (
+    CONF_ALARM_TYPE,
+    CONF_CUSTOM_ALARM_TYPE,
+    CONF_NAME,
+    CONF_OBJECT,
+    DOMAIN,
+)
 
 EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 HISTORY_KEY = "_history"
@@ -70,6 +76,9 @@ class LarmcentralAlarmSensor(_EventSensor):
         return {
             "entity_id": definition.entity,
             "alarm_name": definition.name,
+            "object": self.entry.data.get(CONF_OBJECT),
+            "alarm_type": self.entry.data.get(CONF_ALARM_TYPE),
+            "custom_alarm_type": self.entry.data.get(CONF_CUSTOM_ALARM_TYPE, ""),
             "active_since": runtime.active_since.isoformat() if runtime.active_since else None,
             "start_level": definition.start_level,
             "red_delay": definition.red_delay,
