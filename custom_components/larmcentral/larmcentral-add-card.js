@@ -18,7 +18,7 @@ class LarmcentralAddCard extends HTMLElement {
       <ha-card>
         <button id="add" type="button">
           <ha-icon icon="mdi:plus-circle"></ha-icon>
-          <span>Skapa nytt larm · 0.8.8</span>
+          <span>Skapa nytt larm · 0.8.9</span>
         </button>
       </ha-card>
       <style>
@@ -49,9 +49,9 @@ class LarmcentralAddCard extends HTMLElement {
   }
 
   _openFlow() {
-    // Use Home Assistant's supported integration-add route. The integrations
-    // dashboard reads the domain parameter and opens Larmcentral's config flow.
-    history.pushState(null, "", "/config/integrations/add?domain=larmcentral");
+    // Use Home Assistant's current integrations dashboard add route.
+    // The dashboard reads the domain parameter and starts Larmcentral's config flow.
+    history.pushState(null, "", "/config/integrations/dashboard/add?domain=larmcentral");
     window.dispatchEvent(new Event("location-changed"));
   }
 }
