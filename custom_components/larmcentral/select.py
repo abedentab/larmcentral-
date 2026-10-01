@@ -15,6 +15,7 @@ from .const import (
     ALARM_TYPE_SWITCH,
     ALARM_TYPE_TEMPERATURE,
     CONF_ALARM_TYPE,
+    CONF_OBJECT,
     CONF_START_LEVEL,
     DOMAIN,
     LEVEL_RED,
@@ -55,8 +56,8 @@ class LarmStartLevelSelect(SelectEntity):
         self.entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{CONF_START_LEVEL}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data["name"],
+            "identifiers": {(DOMAIN, "object", str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip().casefold())},
+            "name": str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip(),
         }
 
     @property
@@ -89,8 +90,8 @@ class LarmAlarmTypeSelect(SelectEntity):
         self.entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{CONF_ALARM_TYPE}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data["name"],
+            "identifiers": {(DOMAIN, "object", str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip().casefold())},
+            "name": str(entry.data.get(CONF_OBJECT, entry.data["name"])).strip(),
         }
 
     @property
