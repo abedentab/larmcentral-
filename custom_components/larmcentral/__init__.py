@@ -139,6 +139,34 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate older Larmcentral entries to version 2."""
+    if config_entry.version > 2:
+        return False
+
+    if config_entry.version == 1:
+        from .const import (
+            ALARM_TYPE_CUSTOM,
+            CONF_ALARM_TYPE,
+            CONF_CUSTOM_ALARM_TYPE,
+            CONF_OBJECT,
+        )
+
+        data = dict(config_entry.data)
+        old_name = str(data.get(CONF_NAME, config_entry.title or "")).strip()
+        data.setdefault(CONF_OBJECT, old_name or "Larm")
+        data.setdefault(CONF_ALARM_TYPE, ALARM_TYPE_CUSTOM)
+        data.setdefault(CONF_CUSTOM_ALARM_TYPE, old_name or "Larm")
+
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data=data,
+            version=2,
+        )
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = entry.data
     definition = AlarmDefinition(
