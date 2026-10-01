@@ -3,17 +3,26 @@
     "step": {
       "user": {
         "title": "Lägg till larm",
-        "description": "Skapa ett larmkort för Larmcentralen.",
+        "description": "Skapa ett larm för Larmcentralen.",
         "data": {
-          "name": "Namn",
-          "entity": "Home Assistant-entitet",
+          "object": "Objekt",
+          "alarm_type": "Larmtyp",
+          "custom_alarm_type": "Egen larmtyp (endast när Egen valts)",
+          "entity": "Larmkälla",
           "trigger_state": "Larm när tillståndet är",
           "start_level": "Startnivå",
           "red_delay": "Minuter från gul till röd",
-          "enabled": "Aktiv",
+          "enabled": "Övervakning aktiv",
           "notify_red": "Mobilavisering vid rött"
+        },
+        "data_description": {
+          "object": "Exempel: Kamera stolpe",
+          "custom_alarm_type": "Lämna tomt om du inte valt Egen."
         }
       }
+    },
+    "error": {
+      "custom_alarm_type_required": "Skriv en egen larmtyp när Larmtyp är Egen."
     }
   }
 }
