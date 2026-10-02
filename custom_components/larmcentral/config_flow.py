@@ -105,7 +105,7 @@ class LarmcentralConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def async_get_options_flow(config_entry):
-        return LarmcentralOptionsFlow(config_entry)
+        return LarmcentralOptionsFlow()
 
     async def async_migrate_entry(self, hass, config_entry):
         """Migrate older Larmcentral entries to version 2."""
