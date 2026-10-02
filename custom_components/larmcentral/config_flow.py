@@ -198,7 +198,9 @@ class LarmcentralOptionsFlow(config_entries.OptionsFlow):
                     data=data,
                     title=data[CONF_NAME],
                 )
-                return self.async_create_entry(title="", data={})
+                result = self.async_create_entry(title="", data={})
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                return result
 
         schema = vol.Schema(
             {
