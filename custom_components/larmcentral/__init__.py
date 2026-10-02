@@ -24,11 +24,12 @@ EVENT_ALARM_CHANGED = "larmcentral_alarm_changed"
 PLATFORMS = ["sensor", "switch", "number", "select", "text"]
 HISTORY_KEY = "_history"
 ADD_CARD_PATH = "/larmcentral/larmcentral-add-card.js"
-ADD_CARD_URL = f"{ADD_CARD_PATH}?v=0.8.9"
+ADD_CARD_URL = f"{ADD_CARD_PATH}?v=0.9.7"
 
 WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
 HISTORY_ENTITY = "input_button.larmhistorik"
+INFORMATION_HELPER = "input_text.larm_information"
 
 def _remove_alarm(text: str, name: str) -> str:
     if text in ("unknown", "unavailable"):
@@ -111,6 +112,17 @@ async def _sync_dashboard(
             hass,
             CRITICAL_HELPER,
             _remove_alarm(critical_text, name),
+        )
+        information_state = hass.states.get(INFORMATION_HELPER)
+        information_text = information_state.state if information_state else ""
+        await _set_helper(
+            hass,
+            INFORMATION_HELPER,
+            _add_alarm(
+                information_text,
+                f"{datetime.now().astimezone().strftime('%H:%M')} 🟩 {name} återställt",
+                name,
+            ),
         )
         history_message = f"🟩 {name} återställt"
 
