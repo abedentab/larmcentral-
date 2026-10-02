@@ -98,6 +98,20 @@ class LarmObjectText(_ConfigText):
 
         runtime = self.hass.data[DOMAIN][self.entry.entry_id]["runtime"]
         runtime.definition.name = data[CONF_NAME]
+
+        # Device names are stored in Home Assistant's device registry. Updating
+        # config-entry data alone does not rename an already-created device.
+        # Keep the existing device identity, but update its displayed name so
+        # Larmkonfig immediately follows the edited Objekt value.
+        from homeassistant.helpers import device_registry as dr
+
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get_device(
+            identifiers={(DOMAIN, "object", str(self.entry.data.get(CONF_OBJECT, "")).strip().casefold())}
+        )
+        if device is not None and device.name_by_user is None:
+            device_registry.async_update_device(device.id, name=object_name)
+
         self.async_write_ha_state()
 
 
