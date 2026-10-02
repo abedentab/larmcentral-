@@ -170,9 +170,6 @@ class LarmcentralConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class LarmcentralOptionsFlow(config_entries.OptionsFlow):
     """Edit an existing Larmcentral alarm."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input=None):
         errors = {}
         current = dict(self.config_entry.data)
