@@ -74,6 +74,7 @@ class LarmObjectText(_ConfigText):
         if not object_name:
             return
 
+        old_object_name = str(self.entry.data.get(CONF_OBJECT, "")).strip()
         data = dict(self.entry.data)
         alarm_type = data.get(CONF_ALARM_TYPE, ALARM_TYPE_CUSTOM)
         custom_type = str(data.get(CONF_CUSTOM_ALARM_TYPE, "")).strip()
@@ -107,7 +108,7 @@ class LarmObjectText(_ConfigText):
 
         device_registry = dr.async_get(self.hass)
         device = device_registry.async_get_device(
-            identifiers={(DOMAIN, "object", str(self.entry.data.get(CONF_OBJECT, "")).strip().casefold())}
+            identifiers={(DOMAIN, "object", old_object_name.casefold())}
         )
         if device is not None and device.name_by_user is None:
             device_registry.async_update_device(device.id, name=object_name)
