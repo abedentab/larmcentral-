@@ -67,7 +67,15 @@ def _schema() -> vol.Schema:
             ),
             vol.Required(
                 CONF_TRIGGER_STATE, default=DEFAULT_TRIGGER_STATE
-            ): selector.TextSelector(),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "on", "label": "on"},
+                        {"value": "off", "label": "off"},
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Required(
                 CONF_START_LEVEL, default=DEFAULT_START_LEVEL
             ): selector.SelectSelector(
@@ -227,7 +235,15 @@ class LarmcentralOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_TRIGGER_STATE,
                     default=current.get(CONF_TRIGGER_STATE, DEFAULT_TRIGGER_STATE),
-                ): selector.TextSelector(),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "on", "label": "on"},
+                            {"value": "off", "label": "off"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Required(
                     CONF_START_LEVEL,
                     default=current.get(CONF_START_LEVEL, DEFAULT_START_LEVEL),
