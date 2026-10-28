@@ -14,6 +14,7 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 
 from .alarm import AlarmDefinition, AlarmRuntime
 from .const import (
+    ALARM_TYPE_PING, CONF_ALARM_TYPE,
     CONF_ENABLED, CONF_ENTITY, CONF_NAME, CONF_NOTIFY_RED, CONF_RED_DELAY,
     CONF_START_LEVEL, CONF_TRIGGER_STATE, DEFAULT_ENABLED, DEFAULT_NOTIFY_RED,
     DEFAULT_RED_DELAY, DEFAULT_START_LEVEL, DEFAULT_TRIGGER_STATE, DOMAIN,
@@ -30,6 +31,14 @@ WARNING_HELPER = "input_text.larm_varningar"
 CRITICAL_HELPER = "input_text.larm_kritiska"
 HISTORY_ENTITY = "input_button.larmhistorik"
 INFORMATION_HELPER = "input_text.larm_information"
+
+# Existing Home Assistant entities used by the Deco restart automation.
+INTERNET_ENTITY = "binary_sensor.1_1_1_1"
+DECO_ENTITY = "binary_sensor.192_168_68_1"
+DECO_RESTART_ENTITY = "input_datetime.deco_senaste_omstart"
+RECOVERY_KEY = "_network_recovery"
+RECOVERY_SECONDS = 5 * 60
+
 
 def _remove_alarm(text: str, name: str) -> str:
     if text in ("unknown", "unavailable"):
@@ -139,6 +148,98 @@ async def _sync_dashboard(
         )
 
 
+
+def _notify_red(hass: HomeAssistant, definition: AlarmDefinition) -> None:
+    """Preserve the existing red mobile notification behavior."""
+    hass.async_create_task(
+        hass.services.async_call(
+            "notify",
+            "mobile_app_sm_a566b",
+            {
+                "title": "🟥 Larmcentral",
+                "message": f"{definition.name} är rött larm.",
+            },
+            blocking=False,
+        )
+    )
+
+
+class _NetworkRecovery:
+    """Delay new local ping alarms while Deco/network is recovering.
+
+    The underlying alarm state and raw history are never suppressed.
+    Only dashboard entries and push notifications are delayed.
+    """
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+        self.ends_at: datetime | None = None
+        self.pending: dict[str, tuple[AlarmDefinition, AlarmRuntime]] = {}
+        self.cancel_timer = None
+
+    @callback
+    def begin(self) -> None:
+        self.ends_at = datetime.now().astimezone() + timedelta(
+            seconds=RECOVERY_SECONDS
+        )
+        if self.cancel_timer is not None:
+            self.cancel_timer()
+        self.cancel_timer = async_call_later(
+            self.hass, RECOVERY_SECONDS, self.finish
+        )
+
+    @callback
+    def defer(
+        self,
+        entry_id: str,
+        definition: AlarmDefinition,
+        runtime: AlarmRuntime,
+        previous_level: str | None,
+        level: str,
+    ) -> bool:
+        # A ping alarm first seen during recovery stays hidden through
+        # yellow, red, and green until the recovery check is complete.
+        if entry_id in self.pending:
+            if level == "clear":
+                self.pending.pop(entry_id, None)
+            return True
+
+        if self.ends_at is None or datetime.now().astimezone() >= self.ends_at:
+            return False
+
+        # Pre-existing alarms remain visible and keep their original timing.
+        if previous_level in (None, "clear") and level in ("yellow", "red"):
+            self.pending[entry_id] = (definition, runtime)
+            return True
+        return False
+
+    @callback
+    def forget(self, entry_id: str) -> None:
+        self.pending.pop(entry_id, None)
+
+    @callback
+    def finish(self, _now) -> None:
+        self.cancel_timer = None
+        self.ends_at = None
+        pending = self.pending
+        self.pending = {}
+
+        for definition, runtime in pending.values():
+            source = self.hass.states.get(definition.entity)
+            if (
+                runtime.level in ("yellow", "red")
+                and definition.enabled
+                and source is not None
+                and source.state == definition.trigger_state
+            ):
+                # Report only the devices that are STILL offline.
+                self.hass.async_create_task(
+                    _sync_dashboard(self.hass, definition, runtime.level)
+                )
+                if runtime.level == "red" and definition.notify_red:
+                    _notify_red(self.hass, definition)
+
+
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
     """Register the Larmcentral card as a Lovelace module resource."""
     lovelace_data = hass.data.get(lovelace.LOVELACE_DATA)
@@ -184,6 +285,40 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # the card as a Lovelace resource so dashboards load it deterministically.
     add_extra_js_url(hass, ADD_CARD_URL)
     await _ensure_lovelace_resource(hass)
+
+    recovery = _NetworkRecovery(hass)
+    hass.data.setdefault(DOMAIN, {})[RECOVERY_KEY] = recovery
+
+    @callback
+    def internet_changed(event: Event) -> None:
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+        if (
+            new_state is not None
+            and new_state.state == "off"
+            and (old_state is None or old_state.state != "off")
+        ):
+            recovery.begin()
+
+    @callback
+    def deco_restart_changed(event: Event) -> None:
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+        if (
+            new_state is not None
+            and old_state is not None
+            and old_state.state not in ("unknown", "unavailable")
+            and new_state.state not in ("unknown", "unavailable")
+            and new_state.state != old_state.state
+        ):
+            recovery.begin()
+
+    async_track_state_change_event(
+        hass, [INTERNET_ENTITY], internet_changed
+    )
+    async_track_state_change_event(
+        hass, [DECO_RESTART_ENTITY], deco_restart_changed
+    )
     return True
 
 
@@ -229,6 +364,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = AlarmRuntime(definition=definition)
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault(HISTORY_KEY, AlarmHistory())
+    recovery = hass.data[DOMAIN].get(RECOVERY_KEY)
     cancel_red_timer = None
 
     @callback
@@ -258,22 +394,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             },
         )
 
+        if (
+            recovery is not None
+            and data.get(CONF_ALARM_TYPE) == ALARM_TYPE_PING
+            and definition.entity not in (INTERNET_ENTITY, DECO_ENTITY)
+            and recovery.defer(
+                entry.entry_id, definition, runtime, previous_level,
+                normalized_level,
+            )
+        ):
+            return
+
         hass.async_create_task(
             _sync_dashboard(hass, definition, normalized_level)
         )
 
         if normalized_level == "red" and definition.notify_red:
-            hass.async_create_task(
-                hass.services.async_call(
-                    "notify",
-                    "mobile_app_sm_a566b",
-                    {
-                        "title": "🟥 Larmcentral",
-                        "message": f"{definition.name} är rött larm.",
-                    },
-                    blocking=False,
-                )
-            )
+            _notify_red(hass, definition)
 
     @callback
     def schedule_red_timer() -> None:
@@ -350,6 +487,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         stored = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         if stored:
+            recovery = hass.data.get(DOMAIN, {}).get(RECOVERY_KEY)
+            if recovery is not None:
+                recovery.forget(entry.entry_id)
             if stored.get("remove_listener"):
                 stored["remove_listener"]()
             if stored.get("cancel_red_timer"):
